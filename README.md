@@ -1,5 +1,7 @@
 # DiLab Game Forge
 
+[![Made with pollinations.ai](https://raw.githubusercontent.com/pollinations/pollinations/main/packages/ui/src/brand/badge-made-with.svg)](https://pollinations.ai/?ref=badge)
+
 A standalone, browser-based game generator for the Pollinations community quest #20021.
 
 ## Start locally
