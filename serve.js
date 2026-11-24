@@ -1,5 +1,5 @@
 import http from 'node:http';import {readFile} from 'node:fs/promises';
-const assets=new Set(['index.html','style.css','app.js','core.js','config.js','demo.js']);
+const assets=new Set(['index.html','style.css','app.js','core.js','config.js','demo.js','media.js','gallery.js']);
 const mime={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8'};
 const port=Number(process.env.PORT||8765),base=process.env.BASE_PATH||'/',root=new URL(process.env.PAGES_BUILD==='1'?'docs/':'./',import.meta.url);
 http.createServer(async(req,res)=>{const path=new URL(req.url,'http://localhost').pathname;
