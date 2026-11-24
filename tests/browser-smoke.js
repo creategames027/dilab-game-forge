@@ -15,7 +15,7 @@ try{
  const cdp=(method,params={},sessionId)=>new Promise((r,j)=>{const id=++seq;calls.set(id,[r,j]);ws.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));});
  const ev=async(expression,contextId,sessionId)=>{const x=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true,...(contextId?{contextId}:{})},sessionId);if(x.exceptionDetails)throw Error(x.exceptionDetails.text);return x.result.value;};
  await cdp('Page.enable');
- await cdp('Page.addScriptToEvaluateOnNewDocument',{source:`if(location.origin==='http://localhost:18765'){const original=window.fetch;window.confirm=()=>true;window.testCalls=0;window.fetch=async (input,options)=>{const u=String(input);if(u.includes('/v1/models?'))return new Response(JSON.stringify({data:[{id:'fixture-model'}]}),{headers:{'Content-Type':'application/json'}});if(u.includes('/api/oauth/token')){const body=new URLSearchParams(options.body);if(body.get('code_verifier')!=='fixture-verifier'||body.get('code')!=='fixture-code'||body.get('redirect_uri')!=='http://localhost:18765/dilab-game-forge/')throw Error('wrong PKCE exchange');return new Response(JSON.stringify({access_token:'sk_fixture',expires_in:3600}),{headers:{'Content-Type':'application/json'}});}if(u.includes('/image/')||u.includes('/audio/')){if(options.headers.Authorization!=='Bearer sk_fixture')throw Error('wrong media auth');const png=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5ZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));return new Response(u.includes('/image/')?png:new Uint8Array([73,68,51,3,0,0,0,0,0,0]),{headers:{'Content-Type':u.includes('/image/')?'image/png':'audio/mpeg'}});}if(u.includes('/v1/chat/completions')){window.testCalls++;if(options.headers.Authorization!=='Bearer sk_fixture')throw Error('wrong auth');const payload=JSON.parse(options.body);if(payload.model!=='fixture-model')throw Error('wrong model');if(payload.messages[1].content==='Repair this game'&&payload.messages.length===2)return new Response(JSON.stringify({choices:[{message:{content:'<!doctype html><html><body>broken'}}]}),{headers:{'Content-Type':'application/json'}});const title=payload.messages[1].content.includes('EXISTING GAME')?'Revised Test Game':'Generated Test Game';return new Response(JSON.stringify({choices:[{message:{content:'<!doctype html><html><head><title>'+title+'</title></head><body><button id="play">Play</button><script>document.getElementById("play").onclick=()=>document.body.dataset.played="yes";<\\/script></body></html>'}}],usage:{total_tokens:42}}),{headers:{'Content-Type':'application/json'}});}return original(input,options);};}`});
+ await cdp('Page.addScriptToEvaluateOnNewDocument',{source:`if(location.origin==='http://localhost:18765'){const original=window.fetch;window.confirm=()=>true;window.testCalls=0;window.mediaCalls=0;window.fetch=async (input,options)=>{const u=String(input);if(u.includes('/v1/models?'))return new Response(JSON.stringify({data:[{id:'fixture-model',paid_only:false},{id:'fixture-restricted',paid_only:true}]}),{headers:{'Content-Type':'application/json'}});if(u.includes('/api/oauth/token')){const body=new URLSearchParams(options.body);if(body.get('code_verifier')!=='fixture-verifier'||body.get('code')!=='fixture-code'||body.get('redirect_uri')!=='http://localhost:18765/dilab-game-forge/')throw Error('wrong PKCE exchange');return new Response(JSON.stringify({access_token:'sk_fixture',expires_in:3600}),{headers:{'Content-Type':'application/json'}});}if(u.includes('/audio/'))throw Error('Unexpected remote audio request');if(u.includes('/image/')){window.mediaCalls++;if(new URL(u).searchParams.get('model')!=='black-forest-labs/flux.1-schnell')throw Error('Wrong texture model');if(options.headers.Authorization!=='Bearer sk_fixture')throw Error('wrong media auth');const png=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5ZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));return new Response(png,{headers:{'Content-Type':'image/png'}});}if(u.includes('/v1/chat/completions')){window.testCalls++;if(options.headers.Authorization!=='Bearer sk_fixture')throw Error('wrong auth');const payload=JSON.parse(options.body);if(payload.model!=='fixture-model')throw Error('wrong model');if(payload.messages[1].content==='Repair this game'&&payload.messages.length===2)return new Response(JSON.stringify({choices:[{message:{content:'<!doctype html><html><body>broken'}}]}),{headers:{'Content-Type':'application/json'}});const title=payload.messages[1].content.includes('EXISTING GAME')?'Revised Test Game':'Generated Test Game';return new Response(JSON.stringify({choices:[{message:{content:'<!doctype html><html><head><title>'+title+'</title></head><body><button id="play">Play</button><script>document.getElementById("play").onclick=()=>document.body.dataset.played="yes";<\\/script></body></html>'}}],usage:{total_tokens:42}}),{headers:{'Content-Type':'application/json'}});}return original(input,options);};}`});
  await cdp('Page.navigate',{url});
  await wait(()=>ev("document.getElementById('game-title')?.textContent==='Orbit Runner'"));
  await wait(()=>ev("document.getElementById('preview').srcdoc.includes('Start run')"));
@@ -28,6 +28,17 @@ try{
  await ev("document.getElementById('start').click()",null,child);
  assert.equal(await ev("document.getElementById('overlay').hidden",null,child),true);
  console.log('PASS: demo, opaque sandbox, no unauthenticated generation');
+ for(const kind of ['music','sound']){
+ await ev("document.getElementById('asset-prompt').value='Original retro test melody';document.querySelector('[data-asset="+kind+"]').click()");
+ await wait(()=>ev("document.querySelector('#asset-"+kind+" audio')?.readyState>=1"));
+ const wav=await ev("document.querySelector('#asset-"+kind+" audio').src");
+ assert.ok(wav.startsWith('data:audio/wav;base64,'));
+ const bytes=Buffer.from(wav.split(',')[1],'base64');assert.equal(bytes.toString('ascii',0,4),'RIFF');assert.ok(bytes.subarray(44).some(x=>x!==128));
+ }
+ assert.equal(await ev('window.mediaCalls'),0);
+ assert.equal(await ev('window.testCalls'),0);
+ console.log('PASS: real browser Web Audio creates non-silent playable WAV without sign-in or API calls');
+
  await ev("document.getElementById('share').click()");
  await wait(()=>ev("document.getElementById('share-dialog').open"));
  const shared=await ev("document.getElementById('share-link').value");assert.ok(shared.startsWith(url+'#game='));
@@ -44,13 +55,15 @@ try{
  await ev("document.getElementById('asset-prompt').value='Test asset';document.querySelector('[data-asset="+kind+"]').click()");
  await wait(()=>ev("document.getElementById('asset-"+kind+"').children.length===1"));
  }
- console.log('PASS: mocked texture, music and sound requests');
+ assert.equal(await ev('window.mediaCalls'),1);assert.equal(await ev("Array.from(document.getElementById('model').options).some(o=>o.value==='fixture-restricted')"),false);
+ console.log('PASS: mocked FLUX texture request, free-user model filter, local audio');
  await ev("document.getElementById('model').value='fixture-model';document.getElementById('prompt').value='Make a game';document.getElementById('generate').click()");
  await wait(()=>ev("document.getElementById('game-title').textContent==='Generated Test Game'&&!document.getElementById('generate').disabled"));
  assert.equal(await ev("document.getElementById('preview').srcdoc.includes('sk_fixture')"),false);
  await ev("document.getElementById('revision').value='Add a level';document.getElementById('revise').click()");
  await wait(()=>ev("document.getElementById('game-title').textContent==='Revised Test Game'&&!document.getElementById('generate').disabled"));
  assert.equal(await ev("document.getElementById('preview').srcdoc.includes('data:image/png;base64,')"),true);
+ assert.equal(await ev("document.getElementById('preview').srcdoc.includes('data:audio/wav;base64,')"),true);
  await ev("document.getElementById('auto-repair').checked=true;document.getElementById('prompt').value='Repair this game';document.getElementById('generate').click()");
  await wait(()=>ev("document.getElementById('status').textContent.includes('Automatic repair completed')"));
  assert.equal(await ev('window.testCalls'),4);

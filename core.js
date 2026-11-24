@@ -17,7 +17,7 @@ export function sandboxDocument(code,assets={}) {
   const clean = extractGame(code).replace(/^<!doctype[^>]*>/i,'');
   const policy = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
   const header = '<meta http-equiv="Content-Security-Policy" content="'+policy+'"><meta name="referrer" content="no-referrer"><script>(()=>{const report=e=>parent.postMessage({forgeError:String(e).slice(0,300)}, "*");window.addEventListener("error",e=>report(e.message||"Game script error"));window.addEventListener("unhandledrejection",e=>report(e.reason||"Promise rejected"));})()<\/script>';
-  // Insert before any game script or resource, even if the model omits a head.
+  // Insert CSP and embedded texture/local WAV assets before any game script. No remote audio requests.
   return '<!doctype html>'+header+assetScript(assets)+clean;
 }
 function b64url(bytes){let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}

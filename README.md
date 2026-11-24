@@ -12,11 +12,11 @@ No dependencies or API key in the repository. The included Orbit Runner demo, pr
 ## Generate a game
 
 1. Connect Pollinations using its OAuth authorization flow (PKCE).
-2. Approve a scoped text-generation key and a spending cap.
+2. Approve a scoped text/image-generation key and a spending cap.
 3. Describe a game, select a text model and Generate.
 4. Play, restart, revise, inspect the HTML, download or copy a portable link.
 
-Generation and revisions spend the connected user's balance, not the developer's. Optional one-shot automatic repair is disabled by default. Asset generation is explicit and separate. Music and sound effects use currently paid-only models and require the user to confirm. Generated assets are embedded in the game and exported HTML; very large assets can prevent URL sharing. The default consent cap is $1, editable on the provider consent screen. Only connect accounts eligible under the provider's terms. Disconnect clears the local token; revoke it in the Pollinations dashboard if desired.
+Generation and revisions spend the connected user's balance, not the developer's. Optional one-shot automatic repair is disabled by default. Asset generation is explicit and separate. Music and sound effects are synthesized locally with Web Audio, without authentication, network requests or API charges. Only text models with paid_only:false are listed. Generated assets are embedded in the game and exported HTML; very large assets can prevent URL sharing. The default consent cap is $1, editable on the provider consent screen. Only connect accounts eligible under the provider's terms. Disconnect clears the local token; revoke it in the Pollinations dashboard if desired.
 
 ## Deploy on GitHub Pages (no backend)
 
@@ -34,7 +34,7 @@ Share links encode compressed HTML in the URL fragment; they work on the same de
 
 ## Asset lab and gallery
 
-Generate textures with Z-Image Turbo, instrumental music with Eleven Music, and sound effects with Eleven Text to Sound via Pollinations. The generator receives the names of available embedded assets (not their bytes); game code can use window.FORGE_ASSETS. Three local games are included. Optional one-shot repair detects invalid HTML or initial runtime errors, not every possible gameplay bug.
+Generate textures with FLUX.1 Schnell (flux) via Pollinations. Generate original retro chiptune music and sound effects locally with Web Audio OfflineAudioContext; audio is procedural, not an AI audio service. Prompt keywords and a deterministic seed shape the melody and effects. WAV assets are embedded in previews and exports. The generator receives the names of available embedded assets (not their bytes); game code can use window.FORGE_ASSETS. Three local games are included. Optional one-shot repair detects invalid HTML or initial runtime errors, not every possible gameplay bug.
 
 ## Security
 
