@@ -1,0 +1,6 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {extractGame,titleOf,sandboxDocument,packGame,unpackGame,pkce} from '../core.js';import {DEMO} from '../demo.js';
+test('valid game and markdown fences',()=>{assert.equal(extractGame('~~~'.replace(/~/g,'\x60')+'html\n'+DEMO+'\n'+'~~~'.replace(/~/g,'\x60')),DEMO);assert.equal(titleOf(DEMO),'Orbit Runner')});
+test('rejects truncated and scriptless games',()=>{assert.throws(()=>extractGame('<html><body>'));assert.throws(()=>extractGame('<html><body>hi</body></html>'))});
+test('sandbox policy precedes untrusted script',()=>{const html=sandboxDocument(DEMO);assert.ok(html.indexOf('Content-Security-Policy')<html.indexOf('<script>'));assert.match(html,/connect-src 'none'/);assert.match(html,/frame-src 'none'/);});
+test('share roundtrip, rejects malformed and oversized input',async()=>{assert.equal(await unpackGame(await packGame(DEMO)),DEMO);await assert.rejects(unpackGame('!'));await assert.rejects(unpackGame('a'.repeat(120001)));});
+test('PKCE unique verifier/state and correct challenge shape',async()=>{const a=await pkce(),b=await pkce();assert.notEqual(a.state,b.state);assert.notEqual(a.verifier,b.verifier);assert.match(a.challenge,/^[A-Za-z0-9_-]{43}$/);});

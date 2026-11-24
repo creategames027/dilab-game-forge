@@ -1,0 +1,11 @@
+{
+  "name": "dilab-game-forge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "node serve.js",
+    "build": "node scripts/build-pages.js",
+    "test:pages": "node scripts/build-pages.js && node tests/browser-smoke.js"
+  }
+}
